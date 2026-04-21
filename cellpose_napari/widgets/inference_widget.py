@@ -1,0 +1,137 @@
+from qtpy.QtWidgets import (
+    QVBoxLayout
+)
+
+from cellpose_napari.widgets.widget import Widget
+from cellpose_napari import CellPoseWorker
+
+from autooptions import Options
+from autooptions import OptionsWidget
+
+import numpy as np
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    import napari
+
+from napari.qt.threading import create_worker
+
+from abc import abstractmethod
+
+class InferenceWidget(Widget):
+    
+    def __init__(self, viewer: "napari.viewer.Viewer"):
+        super().__init__(viewer)
+
+    def makeBaseOptions(self, options):
+        models = self.getCellPoseModels()
+        options.addImage("Main channel", callback=self.updateAxesCallback)
+        options.addImage("Secondary channel", optional=True)
+        options.addChoice("Axes", value="---", choices=["---"])
+        options.addChoice("Model", value=models[0], choices=models)
+        options.addInt("Median diameter", value=30, callback=self.updateMedianDiameterCallback)
+        options.addInt("Minimum object size", value=15)
+        options.addBool("Use GPU?", value=True)
+        options.addFloat("Cell probability threshold", value=0.0)
+        options.addFloat("Flow threshold", value=0.4)
+        options.addFloat("Flow smoothing", value=1.0)
+        options.addStr("Segmentation suffix", value="_cp_masks")
+
+    @abstractmethod
+    def getCellPoseModels(self):
+        raise Exception("Abstract method getCellPoseModels of class InferenceWidget called!")
+
+    def updateAxesCallback(self):
+        self.widget._transferValues()
+        layer = self.widget.getImageLayer("Main channel")
+        w = self.widget.widgets['Axes']
+        pool = ["YX", "ZYX", "ZTYX", "TZYX"]
+        w.clear()
+        w.addItems(["---"] if layer is None else [p for p in pool if len(p) == len(layer.data.shape)])
+
+    def updateMedianDiameterCallback(self):
+        self.widget._transferValues()
+        layer = self.widget.getImageLayer("Main channel")
+        if layer is None:
+            return
+        w = int(self.options.value("Median diameter"))
+        n = "Median diameter preview"
+        s = layer.data.shape
+        pad = (0,) * (len(s) - 2)
+        upper_left = np.array([ # lower left corner
+            s[-2] - w,
+            0
+        ])
+        corners = np.array([ # corners of the circle's bounding box
+            (*pad, 0, 0),
+            (*pad, 0, w),
+            (*pad, w, w),
+            (*pad, w, 0),
+        ])
+
+        if n in self.viewer.layers:
+            circle = self.viewer.layers[n].data[0]
+            center = np.mean(circle, axis=0)
+            upper_left = center - np.array([*pad, w/2, w/2])
+            corners = corners + upper_left
+            self.viewer.layers[n].data = corners
+        else:
+            self.viewer.add_shapes(
+                corners + upper_left, 
+                shape_type="ellipse", 
+                edge_color="magenta", 
+                face_color="magenta",
+                name=n,
+                scale=layer.scale
+            )
+
+    def processAnisotropy(self):
+        layer = self.options.value("Main channel")
+        axes = self.widget.getChoice("Axes")
+        if layer is None:
+            return 1.0
+        calib = layer.scale
+        vals = {}
+        for v, a in zip(axes, calib):
+            vals[a] = v
+        if 'Z' not in vals:
+            return 1.0
+        return vals['Z'] / vals['Y']
+
+    def apply(self):
+        main_channel = self.widget.getImageLayer("Main channel").data
+
+        use_secondary = self.options.isActive("Secondary channel")
+        secondary_channel = self.widget.getImageLayer("Secondary channel").data if use_secondary else None
+
+        anisotropy = self.processAnisotropy()
+        model = self.options.value("Model")
+        diameter = self.options.value("Median diameter")
+        min_size = self.options.value("Minimum object size")
+        cell_prob = self.options.value("Cell probability threshold")
+        flow_thr = self.options.value("Flow threshold")
+        flow_smooth = self.options.value("Flow smoothing")
+        axes = self.options.value("Axes")
+
+        self.operation = None
+        try:
+            self.operation = CellPoseWorker(
+                main_channel,
+                secondary_channel,
+                model,
+                diameter,
+                anisotropy,
+                min_size,
+                cell_prob,
+                flow_thr,
+                flow_smooth,
+                axes
+            )
+        except Exception as e:
+            print(f"Error creating CellPoseWorker: {e}")
+            return
+
+        # worker = create_worker(
+        #     self.operation.run,
+        #     _progress={'desc': 'Running CellPose segmentation...'}
+        # )

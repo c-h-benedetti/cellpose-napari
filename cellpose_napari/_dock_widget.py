@@ -1,30 +1,26 @@
-"""
-cellpose dock widget module
-"""
 from typing import Any
 from napari_plugin_engine import napari_hook_implementation
 
 import time
 import numpy as np
-import logging
 
 from napari import Viewer
 from napari.layers import Image, Shapes
 from magicgui import magicgui
-import sys
 
-CP_models = ["cyto3", "cyto2", "cyto", "nuclei", "tissuenet_cp3", 
-             "livecell_cp3", "yeast_PhC_cp3", "yeast_BF_cp3", "bact_phase_cp3", 
-             "bact_fluor_cp3", "deepbacs_cp3", "cyto2_cp3"]
+from ressources import (
+    get_available_models, 
+    init_logger
+)
+
+"""
+cellpose dock widget module
+"""
 
 # initialize logger
 # use -v or --verbose when starting napari to increase verbosity
-logger = logging.getLogger(__name__)
-if '--verbose' in sys.argv or '-v' in sys.argv:
-    logger.setLevel(logging.DEBUG)
-else:
-    logger.setLevel(logging.WARNING)
 
+logger = init_logger()
 
 #@thread_worker
 def read_logging(log_file, logwindow):

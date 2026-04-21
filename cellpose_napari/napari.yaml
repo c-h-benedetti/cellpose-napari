@@ -2,10 +2,18 @@ name: cellpose-napari
 schema_version: 0.1.0
 contributions:
   commands:
-    - id: cellpose-napari.widget_wrapper
-      title: Create cellpose
-      python_name: cellpose_napari._dock_widget:widget_wrapper
-    # samples
+    - id: cellpose-napari.inference_widget
+      title: CellPose Inference
+      python_name: cellpose_napari:CellPoseInferenceWidget
+    - id: cellpose-napari.training_widget
+      title: CellPose Training
+      python_name: cellpose_napari:CellPoseTrainingWidget
+    - id: cellpose-napari.batch_widget
+      title: CellPose Batch Processing
+      python_name: cellpose_napari:CellPoseBatchWidget
+    - id: cellpose-napari.register_model
+      title: Register CellPose Model
+      python_name: cellpose_napari:CellPoseRegisterModelWidget
     - id: cellpose-napari.data.rgb_3D
       title: Generate RGB 3D sample
       python_name: cellpose_napari._sample_data:rgb_3D.tif
@@ -13,8 +21,14 @@ contributions:
       title: Generate RGB 2D sample
       python_name: cellpose_napari._sample_data:rgb_2D.png
   widgets:
-    - command: cellpose-napari.widget_wrapper
-      display_name: cellpose
+    - command: cellpose-napari.inference_widget
+      display_name: CellPose Inference
+    - command: cellpose-napari.training_widget
+      display_name: CellPose Training
+    - command: cellpose-napari.batch_widget
+      display_name: CellPose Batch Processing
+    - command: cellpose-napari.register_model
+      display_name: Register CellPose Model
   sample_data:
     - display_name: Cells (3D+2Ch)
       key: rgb_3D
@@ -22,3 +36,9 @@ contributions:
     - display_name: Cells 2D
       key: rgb_2D
       command: cellpose-napari.data.rgb_2D
+  menus:
+    CellPose:
+      - command: cellpose-napari.inference_widget
+      - command: cellpose-napari.training_widget
+      - command: cellpose-napari.batch_widget
+      - command: cellpose-napari.register_model

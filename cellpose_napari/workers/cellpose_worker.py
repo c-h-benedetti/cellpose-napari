@@ -19,6 +19,12 @@ class CellPoseBaseWorker(ABC):
         self.model = None
         self.output_buffer = None
         self.sanity_check()
+        self.instanciate_model()
+
+    def set_images(self, ch_main, ch_secondary=None):
+        self.main_channel = ch_main
+        self.secondary_channel = ch_secondary
+        self.sanity_check()
 
     def sanity_check(self):
         if self.main_channel is None:
@@ -64,7 +70,6 @@ class CellPoseBaseWorker(ABC):
         return im_data
 
     def run(self, callback=None):
-        self.instanciate_model()
         do_3d = 'Z' in self.axes.upper()
         main_channel = self.to_tzyx(self.main_channel, self.axes)
         secondary_channel = self.to_tzyx(self.secondary_channel, self.axes) if self.secondary_channel is not None else None
@@ -118,16 +123,18 @@ class CellPoseBaseWorker(ABC):
         return arr
     
     def to_original_axes(self, arr, target_axes):
-        # Takes an array with a TZYX shape as well as the original axes order, and transposes it back to the original axes order,
-        # removing all axes that were not originally present (i.e. that were added as size-1 dimensions in to_tzyx)
         target_axes = [a.upper() for a in target_axes]
         current_axes = ['T', 'Z', 'Y', 'X']
+        current_order = []
+        index = 0
         # Remove axes that were not originally present
         for ax in current_axes:
             if ax not in target_axes:
-                arr = np.squeeze(arr, axis=current_axes.index(ax))
-                current_axes.remove(ax)
+                arr = np.squeeze(arr, axis=index)
+            else:
+                current_order.append(index)
+                index += 1
+                
         # Transpose back to original order
-        current_order = [current_axes.index(ax) for ax in target_axes]
         arr = np.transpose(arr, current_order)
         return arr

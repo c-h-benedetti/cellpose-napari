@@ -1,4 +1,10 @@
 from cellpose_napari.widgets.batch_widget import BatchWidget
+from cellpose_napari.ressources import (
+    getBaseModelsCPSAM,
+    getLocalModelsJsonCPSAM
+)
+
+import json
 
 from autooptions import Options
 
@@ -18,3 +24,13 @@ class CPSAMBatchWidget(BatchWidget):
         self.makeBaseOptions(options)
         options.load()
         return options
+    
+    def getCellPoseModels(self):
+        base_models = getBaseModelsCPSAM()
+        local_models_json = getLocalModelsJsonCPSAM()
+        local_models = []
+        if local_models_json.exists():
+            with open(local_models_json, 'r') as f:
+                found_models = json.load(f)
+                local_models = ["//" + model for model in found_models.keys()]
+        return base_models + local_models

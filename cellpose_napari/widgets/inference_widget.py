@@ -1,7 +1,3 @@
-from qtpy.QtWidgets import (
-    QVBoxLayout
-)
-
 from autooptions.qtutil import WidgetTool
 from cellpose_napari.widgets.widget import Widget
 from cellpose_napari import CellPoseWorker
@@ -38,7 +34,7 @@ class InferenceWidget(Widget):
         options.addFloat("Cell probability threshold", value=0.0)
         options.addFloat("Flow threshold", value=0.4)
         options.addFloat("Flow smoothing", value=1.0)
-        options.addStr("Segmentation suffix", value="_cp_masks")
+        options.addStr("Segmentation prefix", value="cp-labels-")
 
     @abstractmethod
     def getCellPoseModels(self):
@@ -182,9 +178,9 @@ class InferenceWidget(Widget):
         if self.operation.output_buffer is None:
             show_info("No output to display")
             return
-        suffix = self.options.value("Segmentation suffix")
+        prefix = self.options.value("Segmentation prefix")
         layer = self.widget.getImageLayer("Main channel")
-        name = layer.name + suffix
+        name = prefix + layer.name
         if name in self.viewer.layers:
             self.viewer.layers[name].data = self.operation.output_buffer
         else:

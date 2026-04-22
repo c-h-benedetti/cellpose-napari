@@ -71,7 +71,7 @@ images_pool = {
     }
 }
 
-target = "3D+t 2C"
+target = "2D 1C (no time)"
 folder = images_pool[target]['folder']
 c1 = tifffile.imread(folder / images_pool[target]['C1'])
 c2 = tifffile.imread(folder / images_pool[target]['C2']) if images_pool[target]['C2'] is not None else None

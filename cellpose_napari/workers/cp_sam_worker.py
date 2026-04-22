@@ -1,8 +1,11 @@
-from cellpose_napari.workers import CellPoseWorker
+from cellpose_napari.workers.cellpose_worker import CellPoseBaseWorker
 from cellpose_napari.ressources import getLocalModelsJsonCPSAM
 
-class CPSAMWorker(CellPoseWorker):
-    def __init__(self, ch_main, ch_secondary, model, diameter, anisotropy, min_size, cell_prob, flow_thr, flow_smooth, axes):
+import numpy as np
+from cellpose import io, models
+
+class CPSAMWorker(CellPoseBaseWorker):
+    def __init__(self, ch_main, ch_secondary, model, diameter, anisotropy, min_size, cell_prob, flow_thr, flow_smooth, axes, use_gpu):
         super().__init__(
             ch_main, 
             ch_secondary, 
@@ -13,8 +16,34 @@ class CPSAMWorker(CellPoseWorker):
             cell_prob, 
             flow_thr, 
             flow_smooth, 
-            axes
+            axes,
+            use_gpu
         )
 
     def get_json_models_path(self):
         return getLocalModelsJsonCPSAM()
+    
+    def instanciate_model(self):
+        io.logger_setup()
+        model = models.CellposeModel(
+            gpu=self.use_gpu,
+            pretrained_model=self.model_name
+        )
+        self.model = model
+
+    def run_model(self, im_data, do_3d):
+        im_data = self.apply_prefilter(im_data)
+        im_data = im_data if do_3d else im_data[:,0,:,:] # CZYX to CYX if 2D
+        
+        masks, _, _ = self.model.eval(
+            im_data,
+            diameter=self.diameter,
+            anisotropy=self.anisotropy,
+            do_3D=do_3d,
+            channel_axis=0,
+            z_axis=1 if do_3d else None,
+            min_size=self.min_object_size,
+            flow3D_smooth=self.flow_smooth
+        )
+        masks = masks if not do_3d else masks[np.newaxis, ...] # YX to ZYX if 2D
+        return masks

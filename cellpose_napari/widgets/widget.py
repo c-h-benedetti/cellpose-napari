@@ -11,13 +11,20 @@ class Widget(QWidget):
     def __init__(self, viewer):
         super().__init__()
         self.viewer     = viewer
+        self.sameRowSet = set()
         self.options    = self.getOptions()
         self.widget     = None
         self.operation  = None
         self.createLayout()
 
     def createLayout(self):
-        self.widget = OptionsWidget(self.viewer, self.options, self)
+        self.widget = OptionsWidget(
+            viewer=self.viewer, 
+            options=self.options, 
+            layout_type='grid', 
+            client=self,
+            sameRowSet=self.sameRowSet
+        )
         self.widget.addApplyButton(self.apply)
         layout = QVBoxLayout()
         layout.addWidget(self.widget)

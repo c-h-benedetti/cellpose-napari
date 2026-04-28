@@ -21,6 +21,10 @@ class CPBatchWorker(object):
         self.flow_threshold = flow_threshold
         self.flow_smoothing = flow_smoothing
         self.segmentation_prefix = segmentation_prefix
+        self.pairs = self.gather_files()
+
+    def get_n_items(self):
+        return len(self.pairs)
 
     def gather_files(self):
         input_path = Path(self.input_folder)
@@ -61,11 +65,10 @@ class CPBatchWorker(object):
         )
         return worker
 
-    def run(self, callback=None):
-        pairs = self.gather_files()
-        total = len(pairs)
+    def run(self):
+        total = len(self.pairs)
         worker = None
-        for idx, (main_file, secondary_file) in enumerate(pairs):
+        for idx, (main_file, secondary_file) in enumerate(self.pairs):
             print(f"Processing file {idx+1}/{total}: {main_file.name}")
             ch_main = tifffile.imread(main_file)
             ch_secondary = tifffile.imread(secondary_file) if secondary_file is not None else None
@@ -77,5 +80,4 @@ class CPBatchWorker(object):
             output = worker.output_buffer
             output_path = Path(self.output_folder) / (self.segmentation_prefix + main_file.name)
             tifffile.imwrite(output_path, output.astype(np.uint16))
-            if callback is not None:
-                callback(idx+1, total)
+            yield idx+1

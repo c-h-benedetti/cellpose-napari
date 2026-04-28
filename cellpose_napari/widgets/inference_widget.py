@@ -36,16 +36,30 @@ class InferenceWidget(Widget):
         options.addFloat("Flow smoothing", value=1.0)
         options.addStr("Segmentation prefix", value="cp-labels-")
 
+        # options.addFloat("A", value=1.0)
+        # options.addFloat("B", value=2.0)
+        # options.addFloat("C", value=3.0)
+        # options.addFloat("D", value=4.0)
+        # self.sameRowSet.update(["B", "C", "D"])
+
     @abstractmethod
     def getCellPoseModels(self):
         raise Exception("Abstract method getCellPoseModels of class InferenceWidget called!")
 
     def updateAxesCallback(self):
         self.widget._transferValues()
-        layer = self.widget.getImageLayer("Main channel")
-        w = self.widget.widgets['Axes']
+        layer_name = self.options.value("Main channel")
+
+        if layer_name is None or layer_name == "":
+            return
+        
+        layer = self.viewer.layers[layer_name]
+        if layer is None:
+            return
+        
+        _, w = self.widget.widgets['Axes']
         pool = ["YX", "ZYX", "TYX", "TZYX", "ZTYX"]
-        new_items = ["---"] if layer is None else [p for p in pool if len(p) == len(layer.data.shape)]
+        new_items = [p for p in pool if len(p) == len(layer.data.shape)]
         WidgetTool.replaceItemsInComboBox(w, new_items)
 
     def updateMedianDiameterCallback(self):
@@ -107,11 +121,13 @@ class InferenceWidget(Widget):
             raise ValueError("Main channel layer is required")
         main_channel = main_channel_layer.data
 
-        use_secondary = self.options.isActive("Secondary channel")
-        secondary_channel_layer = self.widget.getImageLayer("Secondary channel")
-        if use_secondary and secondary_channel_layer is None:
-            raise ValueError("Secondary channel layer is active but not found")
-        secondary_channel = secondary_channel_layer.data if use_secondary else None
+        secondary_channel_name = self.options.value("Secondary channel")
+        if secondary_channel_name is None:
+            secondary_channel_layer = None
+        else:
+            secondary_channel_layer = self.viewer.layers[secondary_channel_name]
+        
+        secondary_channel = secondary_channel_layer.data if secondary_channel_layer else None
 
         anisotropy = self.processAnisotropy()
 
@@ -168,7 +184,10 @@ class InferenceWidget(Widget):
         print("worker created successfully, starting worker...")
         worker = create_worker(
             self.operation.run,
-            _progress={'desc': 'Running CellPose segmentation...'}
+            _progress={
+                'desc': 'Running CellPose segmentation...',
+                'total': self.operation.get_n_time_points()
+            }
         )
         worker.finished.connect(self.displayResult)
         worker.start()

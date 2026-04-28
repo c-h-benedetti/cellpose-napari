@@ -12,6 +12,7 @@ from napari.utils.notifications import (
     show_info, 
     show_warning
 )
+from napari.utils import progress
 
 class BatchWidget(Widget):
     
@@ -34,7 +35,7 @@ class BatchWidget(Widget):
         options.addFloat("Cell probability threshold", value=0.0)
         options.addFloat("Flow threshold", value=0.4)
         options.addFloat("Flow smoothing", value=1.0)
-        options.addStr("Segmentation prefix", value="cp-labels-")
+        options.addStr("Segmentation prefix", value="labels-")
 
     @abstractmethod
     def getCellPoseModels(self):
@@ -76,9 +77,16 @@ class BatchWidget(Widget):
         print("batch worker created successfully, starting worker...")
         worker = create_worker(
             self.operation.run,
-            _progress={'desc': 'Batch-running CellPose segmentation...'}
+            _progress={
+                'desc': 'Running CellPose batch segmentation...',
+                'total': self.operation.get_n_items()
+            }
         )
+        worker.finished.connect(self.onTaskFinished)
         worker.start()
+
+    def onTaskFinished(self):
+        show_info("CellPose batch finished!")
 
     def captureData(self):
         input_folder = self.options.value("Input folder")

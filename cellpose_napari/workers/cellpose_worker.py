@@ -2,6 +2,7 @@ from pathlib import Path
 import json
 import numpy as np
 from abc import ABC, abstractmethod
+from tqdm import tqdm
 
 class CellPoseBaseWorker(ABC):
     def __init__(self, ch_main, ch_secondary, model, diameter, anisotropy, min_size, cell_prob, flow_thr, flow_smooth, axes, use_gpu):
@@ -20,6 +21,12 @@ class CellPoseBaseWorker(ABC):
         self.output_buffer = None
         self.sanity_check()
         self.instanciate_model()
+
+    def get_n_time_points(self):
+        if 'T' in self.axes.upper():
+            return self.main_channel.shape[self.axes.upper().index('T')]
+        else:
+            return 1
 
     def set_images(self, ch_main, ch_secondary=None):
         self.main_channel = ch_main
@@ -69,13 +76,13 @@ class CellPoseBaseWorker(ABC):
     def apply_prefilter(self, im_data):
         return im_data
 
-    def run(self, callback=None):
+    def run(self):
         do_3d = 'Z' in self.axes.upper()
         main_channel = self.to_tzyx(self.main_channel, self.axes)
         secondary_channel = self.to_tzyx(self.secondary_channel, self.axes) if self.secondary_channel is not None else None
         self.output_buffer = np.zeros_like(main_channel, dtype=np.uint16)
         
-        for t in range(main_channel.shape[0]):
+        for t in tqdm(range(main_channel.shape[0]), desc="Processing time points"):
             if secondary_channel is not None:
                 image = np.stack([main_channel[t], secondary_channel[t]], axis=0)
             else:
@@ -83,8 +90,7 @@ class CellPoseBaseWorker(ABC):
                 image = np.expand_dims(image, axis=0) # add channel axis for consistency, shape is now CZYX
             # shape of 'image' == CZYX from this point
             self.output_buffer[t] = self.run_model(image, do_3d)
-            if callback is not None:
-                callback(t + 1, main_channel.shape[0])
+            yield t+1
         
         # Back to the original shape
         self.output_buffer = self.to_original_axes(self.output_buffer, self.axes)

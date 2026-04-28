@@ -98,10 +98,7 @@ worker = CellPoseWorker(
     use_gpu=True
 )
 
-def callback(current_idx, total):
-    print(f"Progress: {current_idx}/{total}")
-
-worker.run(callback)
+worker.run()
 tifffile.imwrite(
     "/tmp/results.tif", 
     worker.output_buffer,

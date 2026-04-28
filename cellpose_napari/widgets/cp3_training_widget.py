@@ -1,4 +1,10 @@
 from cellpose_napari.widgets.training_widget import TrainingWidget
+from cellpose_napari.ressources import (
+    getBaseModelsCP3,
+    getLocalModelsJsonCP3
+)
+
+import json
 
 from autooptions import Options
 
@@ -16,19 +22,21 @@ class CP3TrainingWidget(TrainingWidget):
     def getOptions(self):
         options = Options("NapariCellpose", "Training CP3")
         self.makeBaseOptions(options)
-        self.addChoice("Model", "cyto3", [
-            "cyto3", 
-            "cyto2", 
-            "cyto", 
-            "nuclei",
-            "tissuenet_cp3", 
-            "livecell_cp3", 
-            "yeast_PhC_cp3", 
-            "yeast_BF_cp3", 
-            "bact_phase_cp3", 
-            "bact_fluor_cp3",
-            "deepbacs_cp3",
-            "cyto2_cp3"
-        ])
+        options.addBool("Use SGD?", value=False)
         options.load()
         return options
+    
+    def getCellPoseModels(self):
+        base_models = getBaseModelsCP3()
+        local_models_json = getLocalModelsJsonCP3()
+        local_models = []
+        if local_models_json.exists():
+            with open(local_models_json, 'r') as f:
+                found_models = json.load(f)
+                local_models = ["//" + model for model in found_models.keys()]
+        return base_models + local_models
+    
+    def captureData(self):
+        data = super().captureData()
+        data["use_sgd"] = self.options.get("Use SGD?")
+        return data

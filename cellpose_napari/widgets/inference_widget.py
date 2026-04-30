@@ -25,7 +25,7 @@ class InferenceWidget(Widget):
     def makeBaseOptions(self, options):
         models = self.getCellPoseModels()
         options.addImage("Main channel", callback=self.updateAxesCallback)
-        options.addImage("Secondary channel", optional=(True, False))
+        options.addImage("Secondary channel", optional=[True, False])
         options.addChoice("Axes", value="---", choices=["---"])
         options.addChoice("Model", value=models[0], choices=models)
         options.addInt("Median diameter", value=30, callback=self.updateMedianDiameterCallback)
@@ -35,12 +35,6 @@ class InferenceWidget(Widget):
         options.addFloat("Flow threshold", value=0.4)
         options.addFloat("Flow smoothing", value=1.0)
         options.addStr("Segmentation prefix", value="cp-labels-")
-
-        # options.addFloat("A", value=1.0)
-        # options.addFloat("B", value=2.0)
-        # options.addFloat("C", value=3.0)
-        # options.addFloat("D", value=4.0)
-        # self.sameRowSet.update(["B", "C", "D"])
 
     @abstractmethod
     def getCellPoseModels(self):

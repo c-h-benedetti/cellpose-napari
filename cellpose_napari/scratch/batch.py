@@ -1,7 +1,8 @@
 from cellpose_napari import CellPoseBatchWorker
+import os
 
-input_folder = "/media/clement/3b801c96-393a-4b2e-be1e-9cabfbb10740/data-formation-ml-dl/dump/PhC-C2DH-U373/01"
-output_folder = "/media/clement/3b801c96-393a-4b2e-be1e-9cabfbb10740/data-formation-ml-dl/dump/PhC-C2DH-U373/01_INF"
+input_folder = "/home/clement/Desktop/cellpose_napari_wd/dataset_batch"
+output_folder = "/home/clement/Desktop/cellpose_napari_wd/outputs/batch"
 main_channel_prefix = "t"
 secondary_channel_prefix = None
 axes = "YX"
@@ -15,6 +16,9 @@ cell_prob_threshold = 0.0
 flow_threshold = 0.4
 flow_smoothing = 0.0
 segmentation_prefix = "seg_"
+
+if not os.path.exists(output_folder):
+    os.makedirs(output_folder)
 
 wpbw = CellPoseBatchWorker(
     input_folder, 
@@ -34,4 +38,5 @@ wpbw = CellPoseBatchWorker(
     segmentation_prefix
 )
 
-wpbw.run()
+for t in wpbw.run():
+    pass

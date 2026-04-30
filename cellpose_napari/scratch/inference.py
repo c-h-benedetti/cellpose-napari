@@ -1,106 +1,97 @@
 import tifffile
 from pathlib import Path
-
+import json
 from cellpose_napari import CellPoseWorker
 
-images_pool = {
-    "2D 1C (no time)": {
-        'folder'    : Path("/media/clement/3b801c96-393a-4b2e-be1e-9cabfbb10740/data-formation-ml-dl/dump/BBBC022_v1_images_20585w1"),
-        'C1'        : "IXMtest_A02_s1_w17C9F8BDB-79F0-4F8B-852B-71161631F236.tif",
-        'C2'        : None,
-        'diameter'  : 30,
-        'anisotropy': 1.0,
-        'axes'      : "YX"
-    },
-    "2D+t 1C": {
-        'folder'    : Path("/media/clement/3b801c96-393a-4b2e-be1e-9cabfbb10740/data-formation-ml-dl/dump/PhC-C2DH-U373"),
-        'C1'        : "2d+t.tif",
-        'C2'        : None,
-        'diameter'  : 75,
-        'anisotropy': 1.0,
-        'axes'      : "TYX"
-    },
-    "2D 2C (no time)": {
-        'folder'    : Path("/media/clement/3b801c96-393a-4b2e-be1e-9cabfbb10740/data-formation-ml-dl/BBBC013-Human-U2OS/tests"),
-        'C1'        : "C1--01-A-01.tif",
-        'C2'        : "C2--01-A-01.tif",
-        'diameter'  : 30,
-        'anisotropy': 1.0,
-        'axes'      : "YX"
-    },
-    "2D+t 2C": {
-        'folder'    : Path("/media/clement/3b801c96-393a-4b2e-be1e-9cabfbb10740/data-formation-ml-dl/BBBC013-Human-U2OS/tests"),
-        'C1'        : "c1_time.tif",
-        'C2'        : "c2_time.tif",
-        'diameter'  : 30,
-        'anisotropy': 1.0,
-        'axes'      : "TYX"
-    },
+def is_data(folder_path):
+    if not folder_path.is_dir():
+        return False
+    if "c1.tif" not in [f.name for f in folder_path.iterdir() if f.is_file()]:
+        return False
+    return True
 
-    "3D 1C (no time)": {
-        'folder'    : Path("/media/clement/3b801c96-393a-4b2e-be1e-9cabfbb10740/Fluo-N3DH-SIM+/01"),
-        'C1'        : "t001.tif",
-        'C2'        : None,
-        'diameter'  : 45,
-        'anisotropy': 8.0775,
-        'axes'      : "ZYX"
-    },
-    "3D 2C (no time)": {
-        'folder'    : Path("/home/clement/Downloads/2026-03-12-cchamontin/splitted"),
-        'C1'        : "C1-CC-VIF-05_24h+BafA_26-1-1.tif",
-        'C2'        : "C2-CC-VIF-05_24h+BafA_26-1-1.tif",
-        'diameter'  : 180,
-        'anisotropy': 3.0894,
-        'axes'      : "ZYX"
-    },
-    "3D+t 1C": {
-        'folder'    : Path("/home/clement/Downloads/2026-03-12-cchamontin/splitted"),
-        'C1'        : "nuclei-time.tif",
-        'C2'        : None,
-        'diameter'  : 120,
-        'anisotropy': 3.0894,
-        'axes'      : "TZYX"
-    },
-    "3D+t 2C": {
-        'folder'    : Path("/home/clement/Downloads/2026-03-12-cchamontin/splitted"),
-        'C1'        : "membranes-time.tif",
-        'C2'        : "nuclei-time.tif",
-        'diameter'  : 240,
-        'anisotropy': 3.0894,
-        'axes'      : "TZYX"
-    }
-}
+def recursive_folder_exploration(root, folders):
+    if not root.is_dir():
+        return
+    if is_data(root):
+        folders.append(root)
+    for child in root.iterdir():
+        recursive_folder_exploration(child, folders)
 
-target = "2D 1C (no time)"
-folder = images_pool[target]['folder']
-c1 = tifffile.imread(folder / images_pool[target]['C1'])
-c2 = tifffile.imread(folder / images_pool[target]['C2']) if images_pool[target]['C2'] is not None else None
-model = 'cpsam'
-diameter = images_pool[target]['diameter']
-anisotropy = images_pool[target]['anisotropy']
-min_size = 20
-cell_prob = 0.0
-flow_thr = 0.4
-flow_smooth = 0.0
-axes = images_pool[target]['axes']
+def probe_folder(root_folder):
+    folders = []
+    recursive_folder_exploration(root_folder, folders)
+    return folders
 
-worker = CellPoseWorker(
-    ch_main=c1,
-    ch_secondary=c2,
-    model=model,
-    diameter=diameter,
-    anisotropy=anisotropy,
-    min_size=min_size,
-    cell_prob=cell_prob,
-    flow_thr=flow_thr,
-    flow_smooth=flow_smooth,
-    axes=axes,
-    use_gpu=True
-)
+def remove_root(p1, p2):
+    # Removes the parts that both folders have in common in p2
+    p1_parts = p1.parts
+    p2_parts = p2.parts
+    kept = []
+    is_root = True
+    
+    for i, p in enumerate(p2_parts):
+        if not is_root:
+            kept.append(p)
+            continue
+        if i >= len(p1_parts) or p != p1_parts[i]:
+            is_root = False
+            kept.append(p)
+    return Path(*kept)
 
-worker.run()
-tifffile.imwrite(
-    "/tmp/results.tif", 
-    worker.output_buffer,
-    imagej=True
-)
+dataset_root = Path("/home/clement/Desktop/cellpose_napari_wd/datasets")
+output_root  = Path("/home/clement/Desktop/cellpose_napari_wd/outputs")
+paths = probe_folder(dataset_root)
+
+for path in paths:
+    print(f">>> Processing {path}")
+    c1_path = path / "c1.tif"
+    c2_path = path / "c2.tif"
+    description_path = path / "description.json"
+    if not description_path.is_file():
+        print(f"Missing description.json in {path}")
+        continue
+    with open(description_path) as f:
+        description = json.load(f)
+    diameter = description.get("diameter", None)
+    anisotropy = description.get("anisotropy", None)
+    axes = description.get("axes", None)
+    if diameter is None or anisotropy is None or axes is None:
+        print(f"Missing diameter, anisotropy or axes in description.json in {path}")
+        continue
+    c1 = tifffile.imread(c1_path)
+    c2 = tifffile.imread(c2_path) if c2_path.is_file() else None
+    model = 'cpsam'
+    min_size = 20
+    cell_prob = 0.0
+    flow_thr = 0.4
+    flow_smooth = 0.0
+
+    worker = CellPoseWorker(
+        ch_main=c1,
+        ch_secondary=c2,
+        model=model,
+        diameter=diameter,
+        anisotropy=anisotropy,
+        min_size=min_size,
+        cell_prob=cell_prob,
+        flow_thr=flow_thr,
+        flow_smooth=flow_smooth,
+        axes=axes,
+        use_gpu=True
+    )
+
+    for t in worker.run():
+        pass
+
+    output_path = output_root / remove_root(dataset_root, path)
+    output_path.mkdir(parents=True, exist_ok=True)
+    
+    tifffile.imwrite(
+        output_path / "result.tif", 
+        worker.output_buffer,
+        imagej=True
+    )
+    print("\n\n\n")
+
+print("Done.")

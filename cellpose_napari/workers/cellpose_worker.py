@@ -96,7 +96,7 @@ class CellPoseBaseWorker(ABC):
         self.output_buffer = self.to_original_axes(self.output_buffer, self.axes)
     
     @abstractmethod
-    def run_model(self, image, do_3d):
+    def run_model(self, im_data, do_3d):
         raise NotImplementedError("Subclasses should implement this method to run the model.")
 
     @abstractmethod

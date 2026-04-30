@@ -76,7 +76,7 @@ class CPBatchWorker(object):
                 worker = self.instanciate_worker(ch_main, ch_secondary)
             else:
                 worker.set_images(ch_main, ch_secondary)
-            worker.run()
+            list(worker.run()) # consume generator
             output = worker.output_buffer
             output_path = Path(self.output_folder) / (self.segmentation_prefix + main_file.name)
             tifffile.imwrite(output_path, output.astype(np.uint16))

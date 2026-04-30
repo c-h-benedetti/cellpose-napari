@@ -35,10 +35,10 @@ class SplitAxisWidget(Widget):
             show_info(' | '.join([f'Axis {i}: {s}' for i, s in enumerate(layer.data.shape)]))
     
     def updateLUTs(self):
-        lutsUsed = self.options.isActive("LUTs")
-        if not lutsUsed:
+        luts = self.options.value("LUTs")
+        if luts is None or luts.strip() == "":
             return
-        self.base_luts = [lut.strip() for lut in self.options.value("LUTs").lower().split(",")]
+        self.base_luts = [lut.strip() for lut in luts.lower().split(",")]
     
     def apply(self):
         layer = self.widget.getImageLayer("Target image")

@@ -23,6 +23,9 @@ class CellPoseBaseTraining(ABC):
         self.rescale = settings["rescale"]
         self.min_train_masks = settings["min_train_masks"]
         self.median_diameter = None
+        self.model = None
+        self.training_assessment = None
+        self.default_base = None
         self.process_median_diameter()
         self.sanity_check()
 
@@ -48,14 +51,15 @@ class CellPoseBaseTraining(ABC):
     @abstractmethod
     def getBaseModelPath(self):
         raise Exception("Abstract method getBaseModelPath of class CellPoseBaseTraining called!")
-
-    @abstractmethod
-    def getCellPoseModels(self):
-        raise Exception("Abstract method getCellPoseModels of class CellPoseBaseTraining called!")
     
     @abstractmethod
     def instanciate_model(self):
         raise Exception("Abstract method instanciate_model of class CellPoseBaseTraining called!")
     
+    @abstractmethod
+    def launch_training(self):
+        raise Exception("Abstract method launch_training of class CellPoseBaseTraining called!")
+    
     def run(self):
-        model = self.instanciate_model()
+        self.instanciate_model()
+        self.launch_training()

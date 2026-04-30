@@ -3,48 +3,58 @@ from cellpose_napari.ressources import (
     getBaseModelsCP3,
     getLocalModelsJsonCP3
 )
-
 import json
+from cellpose import io, models, train
 
-import numpy as np
-from cellpose import (
-    io, 
-    models, 
-    train
-)
 
 class CP3TrainingWorker(CellPoseBaseTraining):
+    
     def __init__(self, settings):
         super().__init__(settings)
-        self.sgd = settings.get("sgd", False)
-
-    def getCellPoseModels(self):
-        base_models = getBaseModelsCP3()
-        local_models_json = getLocalModelsJsonCP3()
-        local_models = []
-        if local_models_json.exists():
-            with open(local_models_json, 'r') as f:
-                found_models = json.load(f)
-                local_models = ["//" + model for model in found_models.keys()]
-        return base_models + local_models
+        self.sgd = settings.get("use_sgd", False)
+        self.default_base = "cyto3"
     
     def getBaseModelPath(self):
-        models_pool = self.getCellPoseModels()
+        if not self.base_model_name.startswith("//"):
+            if self.base_model_name not in getBaseModelsCP3():
+                print(f"Model not found, going with '{self.default_base}' base model.")
+                return self.default_base
+            return self.base_model_name
+        json_path = getLocalModelsJsonCP3()
+        if not json_path.exists():
+            raise ValueError(f"Local models json file '{json_path}' does not exist.")
+        with open(json_path, 'r') as f:
+            found_models = json.load(f)
+            model_name = self.base_model_name[2:]
+            if model_name not in found_models:
+                print(f"Model not found, going with '{self.default_base}' base model.")
+                return self.default_base
+            return found_models[model_name]
     
     def instanciate_model(self):
-        model = models.CellposeModel(
+        base_model = self.getBaseModelPath()
+        print(f"Using base model: {base_model}")
+        self.model = models.CellposeModel(
             gpu=self.use_gpu,
-            model_type=self.getBaseModelPath()
+            model_type=base_model
         )
+
+    def launch_training(self):
+        if self.model is None:
+            raise Exception("Model not instanciated!")
+        
+        print("Loading training data...")
         data = io.load_train_test_data(
-            self.training_folder,
-            self.testing_folder,
+            str(self.training_folder),
+            str(self.testing_folder),
             mask_filter=self.masks_filter,
             look_one_level_down=self.look_one_level_down
         )
-        images, labels, image_names, test_images, test_labels, image_names_test = data
+        images, labels, _, test_images, test_labels, _ = data
+
+        print("Starting training...")
         model_path, train_losses, test_losses = train.train_seg(
-            model.net,
+            self.model.net,
             train_data=images,
             train_labels=labels,
             test_data=test_images,
@@ -55,29 +65,11 @@ class CP3TrainingWorker(CellPoseBaseTraining):
             model_name=self.model_name,
             rescale=self.rescale,
             batch_size=self.batch_size,
-            min_train_masks=self.min_train_masks,
-            SGD=self.sgd
+            min_train_masks=self.min_train_masks
         )
 
-
-if __name__ == "__main__":
-    settings = {
-        'training_folder': "/home/clement/Documents/projects/2219-intensity-membrane/augmented/training",
-        'testing_folder': "/home/clement/Documents/projects/2219-intensity-membrane/augmented/testing",
-        'look_one_level_down': False,
-        'axes': "YX",
-        'images_filter': None,
-        'masks_filter': "_cp_masks",
-        'model_name': "cp-sam-custom-test",
-        'base_model': "cpsam",
-        'use_gpu': True,
-        'weight_decay': 0.1,
-        'learning_rate': 0.001,
-        'n_epochs': 500,
-        'batch_size': 8,
-        'rescale': True,
-        'min_train_masks': 1,
-        'sgd': True
-    }
-    worker = CP3TrainingWorker(settings)
-    worker.run()
+        self.training_assessment = {
+            "model_path"  : model_path,
+            "train_losses": train_losses,
+            "test_losses" : test_losses
+        }

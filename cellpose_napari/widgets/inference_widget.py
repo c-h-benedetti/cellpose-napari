@@ -27,7 +27,7 @@ class InferenceWidget(Widget):
         options.addImage("Main channel", callback=self.updateAxesCallback)
         options.addImage("Secondary channel", optional=[True, False])
         options.addChoice("Axes", value="---", choices=["---"])
-        options.addChoice("Model", value=models[0], choices=models)
+        options.addChoice("Model", value=models[0], choices=models, transient=True)
         options.addInt("Median diameter", value=30, callback=self.updateMedianDiameterCallback)
         options.addInt("Minimum object size", value=15)
         options.addBool("Use GPU?", value=True)

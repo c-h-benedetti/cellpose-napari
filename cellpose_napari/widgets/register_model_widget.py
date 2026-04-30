@@ -1,13 +1,15 @@
 from cellpose_napari.widgets.widget import Widget
-
 import json
 from pathlib import Path
-
+from abc import abstractmethod
+from napari.utils.notifications import (
+    show_info, 
+    show_warning
+)
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import napari
 
-from abc import abstractmethod
 
 class RegisterModelWidget(Widget):
     
@@ -27,14 +29,14 @@ class RegisterModelWidget(Widget):
         name = options.value("Name")
         path = options.value("Model path")
         if name is None or path is None:
-            print("Name or path is None!")
+            show_warning("Name or path is None!")
             return
         path = Path(path)
         if name == "":
-            print("Name is empty!")
+            show_warning("Name is empty!")
             return
         if not path.exists() or not path.is_file():
-            print("Path does not exist or is not a file!")
+            show_warning("Path does not exist or is not a file!")
             return
         jsonPath = self.getLocalModelsJson()
         data = {}
@@ -44,3 +46,4 @@ class RegisterModelWidget(Widget):
         data[name] = str(path)
         with open(jsonPath, "w") as f:
             json.dump(data, f, indent=4)
+        show_info(f"Model '{name}' registered successfully!")

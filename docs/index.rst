@@ -3,18 +3,22 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-cellpose-napari
-===============================================================
+Cellpose-Napari
+===============
 
-cellpose-napari is a plugin to enable usage of cellpose in napari.
+:code:`cellpose-napari` is a package containing a Napari plugin enabling the usage of Cellpose in Napari.
+This plugin works for both Cellpose 3 and Cellpose 4 (Cellpose SAM) and is compatible with Napari 0.5 and later.
+The term "usage" includes:
+- Inference on images in the Napari viewer (2D, 2D+t, 3D, 3D+t).
+- Batch inference over a folder full of images.
+- Retrain Cellpose using custom data.
 
 .. image:: _static/gui.PNG
     :width: 1200px
     :align: center
     :alt: plugin
 
-Please see cellpose `documentation`_ for more information on the 
-algorithm and the settings.
+Please see Cellpose `documentation`_ for more information on the algorithm and the settings.
 
 If you use this plugin please cite 
 ::

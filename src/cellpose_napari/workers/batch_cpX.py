@@ -24,6 +24,9 @@ class CPBatchWorker(object):
         self.flow_smoothing = flow_smoothing
         self.segmentation_prefix = segmentation_prefix
         self.pairs = self.gather_files()
+        self.last_item = None
+        if not self.output_folder.exists():
+            self.output_folder.mkdir(parents=True, exist_ok=True)
 
     def get_n_items(self):
         return len(self.pairs)
@@ -77,12 +80,15 @@ class CPBatchWorker(object):
     def makeNewName(self, oldName):
         main_prefix = self.main_channel_prefix
         return self.segmentation_prefix + oldName[len(main_prefix):] # remove main prefix
+    
+    def getLastItem(self):
+        return self.last_item
 
     def run(self):
         total = len(self.pairs)
         worker = None
         for idx, (main_file, secondary_file) in enumerate(self.pairs):
-            print(f"Processing file {idx+1}/{total}: {main_file.name}")
+            print(f"=== Processing file {idx+1}/{total}: {main_file.name} ===")
             ch_main = self.open_img(main_file)
             ch_secondary = self.open_img(secondary_file)
             if worker is None:
@@ -98,4 +104,6 @@ class CPBatchWorker(object):
             new_name = self.makeNewName(main_file.name)
             output_path = Path(self.output_folder) / new_name
             tifffile.imwrite(output_path, output, imagej=True)
+            self.last_item = (new_name, output)
             yield idx+1
+        self.last_item = None

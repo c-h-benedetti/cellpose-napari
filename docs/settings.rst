@@ -1,61 +1,112 @@
 Settings
+========
+
+* There are more settings for Cellpose that can be accessed using the CLI or 
+through a Jupyter notebook. See details at cellpose `docs`_.
+* Listed are settings available through the Napari widget.
+* Please file an issue if you would like a new setting available in the widget.
+
+Main & secondary channels
+-------------------------
+
+* The main channel is the channel containing your objects of interest.
+* The secondary channel is an **optional** channel that can be used to help segmentation.
+  For example, you can provide a nuclear channel as the secondary channel when segmenting the cytoplasm.
+* If you are using Cellpose SAM, there should not be any effect if you swap the main and secondary channels.
+* Both these channels should be independent layers in Napari.
+
+Axes
+----
+
+* An image with three dimensions could be a 3D image (Z, Y, X) or a time series (T, Y, X).
+* Also, according to the source, an image with four dimensions could have the shape (T, Z, Y, X) or (Z, T, Y, X).
+* Due to this variability and the multiple ways this information can be encoded in the metadata, 
+  the plugin does not try to guess the axes order and instead asks the user to set it.
+
+Model
+-----
+
+* Cellpose SAM comes with a single pretrained model called "cpsam".
+* Cellpose 3 comes with many more models such as "cyto3", "nuclei" or "tissuenet_cp3".
+  You can go to Cellpose documentation to find a more detailed list of these `models`_.
+* If you launch the "Register CellPose Model" widget, 
+  you will be able to provide a name and a path for a custom model.
+* Your custom models will appear with the "//" prefix in the model dropdown menu.
+
+Median diameter
+---------------
+
+* The Cellpose models have been trained on images that were rescaled 
+  to all have the same diameter (30 pixels in the case of the `cyto` 
+  model and 17 pixels in the case of the `nuclei` model). Therefore, 
+  Cellpose needs a user-defined cell diameter (in pixels) as input, or to estimate 
+  the object size on an image-by-image basis.
+* Changing the diameter will change the results that the algorithm 
+  outputs. When the diameter is set smaller than the true size 
+  then cellpose may over-split cells. Similarly, if the diameter 
+  is set too big then cellpose may over-merge cells.
+* If you edit the diameter value, a magenta circle will appear.
+  You can translate it as you need, and it should show up on the current slice.
+
+Minimum object size
+-------------------
+
+* The minimum object size is the minimum number of pixels that a label needs to have to be kept in the final result.
+* You can adjust it to remove small objects or debris from the final segmentation.
+
+Use GPU?
+--------
+
+* This checkbox allows you to choose whether to run Cellpose on the GPU or on the CPU.
+* Only NVidia GPUs are supported and PyTorch requires CUDA drivers to run on the GPU.
+
+Cell probability threshold
 --------------------------
 
-There are more settings for cellpose that can be accessed using the CLI or 
-through a jupyter notebook. See details at cellpose `docs`_.
+The network predicts 3 outputs:
 
-Listed are settings available through napari widget. Please submit an 
-issue if you would like a new setting available in the widget.
+* Flows in X
+* Flows in Y
+* Cells "probability"
 
-Channels
-~~~~~~~~~~~~~~~~~~~~~~~~
+* The probabilities prediction are the inputs to a sigmoid centered at zero (1 / (1 + e^-x)), 
+so they vary from around -6 to +6. The pixels greater than the 
+``cellprob_threshold`` are used to run dynamics and determine masks. 
+* The default is ``cellprob_threshold=0.0``. 
+* Decrease this threshold if Cellpose is not returning  as many masks as you'd expect. 
+* Increase it if Cellpose is returning too masks particularly from dim areas.
 
-Cytoplasm model (`'cyto'`)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Flow threshold
+--------------
 
-The cytoplasm model in cellpose is trained on two-channel images, where 
-the first channel is the channel to segment, and the second channel is 
-an optional nuclear channel. Here are the options for each:
-1. 0=grayscale, 1=red, 2=green, 3=blue, 4 ...
-2. 0=None (will set to zero), 1=red, 2=green, 3=blue, 4 ...
+Placeholder
 
-Nucleus model (`'nuclei'`)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Flow smoothing
+--------------
 
-The nuclear model in cellpose is trained on two-channel images, where 
-the first channel is the channel to segment, and the second channel is 
-always set to an array of zeros. Therefore set the first channel as 
-0=grayscale, 1=red, 2=green, 3=blue; and set the second channel to 0=None
+Placeholder
 
-Diameter 
-~~~~~~~~~~~~~~~~~~~~~~~~
+Segmentation prefix
+-------------------
 
-The cellpose models have been trained on images which were rescaled 
-to all have the same diameter (30 pixels in the case of the `cyto` 
-model and 17 pixels in the case of the `nuclei` model). Therefore, 
-cellpose needs a user-defined cell diameter (in pixels) as input, or to estimate 
-the object size of an image-by-image basis.
+Placeholder
 
-The automated estimation of the diameter is a two-step process using the `style` vector 
-from the network, a 64-dimensional summary of the input image. We trained a 
-linear regression model to predict the size of objects from these style vectors 
-on the training data. On a new image the procedure is as follows.
 
-1. Run the image through the cellpose network and obtain the style vector. Predict the size using the linear regression model from the style vector.
-2. Resize the image based on the predicted size and run cellpose again, and produce masks. Take the final estimated size as the median diameter of the predicted masks.
 
-Click ``compute diameter from image`` to start diameter estimation.
-However, if this estimate is incorrect please set the diameter by hand.
 
-You can also get an estimate from clicking on the image: create a napari 'Shapes' layer 
-and draw circles or squares. If you click 
-``compute diameter from shape layer``, the plugin will set the diameter to 
-the average diameter of the drawn shapes.
 
-Changing the diameter will change the results that the algorithm 
-outputs. When the diameter is set smaller than the true size 
-then cellpose may over-split cells. Similarly, if the diameter 
-is set too big then cellpose may over-merge cells.
+
+
+
+
+
+
+
+
+
+
+
+
 
 Resample
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -67,41 +118,11 @@ the flows (dX, dY, cellprob), the model runs the dynamics. The dynamics can be r
 size (``resample=False``), or the dynamics can be run on the resampled, interpolated flows 
 at the true image size (``resample=True``). ``resample=True`` will create smoother masks when the 
 cells are large but will be slower in case; ``resample=False`` will find more masks when the cells 
-are small but will be slower in this case. 
+are small but will be slower in this case.
 
-Model match threshold
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Note there is nothing keeping the neural network from predicting 
-horizontal and vertical flows that do not correspond to any real 
-shapes at all. In practice, most predicted flows are consistent with 
-real shapes, because the network was only trained on image flows 
-that are consistent with real shapes, but sometimes when the network 
-is uncertain it may output inconsistent flows. To check that the 
-recovered shapes after the flow dynamics step are consistent with 
-real masks, we recompute the flow gradients for these putative 
-predicted masks, and compute the mean squared error between them and
-the flows predicted by the network. 
-
-The ``model match threshold`` parameter is inverse of the maximum 
-allowed error of the flows for each mask. Decrease this threshold 
-if cellpose is not returning as many masks as you'd expect. 
-Similarly, increase this threshold if cellpose is returning too many 
-ill-shaped masks.
-
-Cell probability threshold
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The network predicts 3 outputs: flows in X, flows in Y, and cell "probability". 
-The predictions the network makes of the probability are the inputs to a sigmoid 
-centered at zero (1 / (1 + e^-x)), 
-so they vary from around -6 to +6. The pixels greater than the 
-``cellprob_threshold`` are used to run dynamics and determine masks. The default 
-is ``cellprob_threshold=0.0``. Decrease this threshold if cellpose is not returning 
-as many masks as you'd expect. Similarly, increase this threshold if cellpose is 
-returning too masks particularly from dim areas.
 
 .. _docs: https://cellpose.readthedocs.io/en/latest/command.html#command-line
+.. _models: https://cellpose.readthedocs.io/en/v3.1.1.1/models.html
 
 
 

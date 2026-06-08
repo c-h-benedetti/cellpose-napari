@@ -25,13 +25,11 @@ class InferenceWidget(Widget):
         models = getCellPoseModels()
         options.addImage("Main channel")
         options.addImage("Secondary channel", optional=[True, False])
-        options.addChoice(
-            "Axes", value="---", choices=["YX", "ZYX", "TYX", "TZYX", "ZTYX"]
-        )
         options.addChoice("Model", value=models[0], choices=models, transient=True)
         options.addInt(
             "Median diameter", value=30, callback=self.updateMedianDiameterCallback
         )
+        options.addBool("Kill borders?", value=False)
         options.addInt("Minimum object size", value=15)
         options.addBool("Use GPU?", value=True)
         options.addFloat("Cell probability threshold", value=0.0)
@@ -88,9 +86,9 @@ class InferenceWidget(Widget):
 
     def processAnisotropy(self):
         layer = self.widget.getImageLayer("Main channel")
-        axes = self.options.value("Axes")
         if layer is None:
             return 1.0
+        axes = [a.upper() for a in layer.axis_labels]
         calib = layer.scale
         vals = {}
         for v, a in zip(axes, calib):
@@ -98,9 +96,13 @@ class InferenceWidget(Widget):
         if "Z" not in vals:
             return 1.0
         return vals["Z"] / vals["Y"]
+    
+    def checkAxes(self, axes):
+        valid_axes = {"T", "Z", "Y", "X"}
+        axes = set(axes)
+        return axes.issubset(valid_axes)
 
     def captureData(self):
-        axes = self.options.value("Axes")
         anisotropy = self.processAnisotropy()
         model = self.options.value("Model")
         diameter = self.options.value("Median diameter")
@@ -109,10 +111,16 @@ class InferenceWidget(Widget):
         flow_thr = self.options.value("Flow threshold")
         flow_smooth = self.options.value("Flow smoothing")
         use_gpu = self.options.value("Use GPU?")
+        kill_borders = self.options.value("Kill borders?")
 
         main_channel_layer = self.widget.getImageLayer("Main channel")
         if main_channel_layer is None:
             raise ValueError("Main channel layer is required")
+        
+        axes = [a.upper() for a in main_channel_layer.axis_labels]
+        if not self.checkAxes(axes):
+            show_warning("Use 'Calibration Tool' to set this layer's axes.")
+
         main_channel = xr.DataArray(main_channel_layer.data, dims=list(axes))
         main_channel = ImageUtils.ensureAxes(main_channel)
 
@@ -144,7 +152,8 @@ class InferenceWidget(Widget):
             "flow_thr": flow_thr,
             "flow_smooth": flow_smooth,
             "axes": axes,
-            "use_gpu": use_gpu
+            "use_gpu": use_gpu,
+            "kill_borders": kill_borders
         }
 
     def apply(self):
@@ -162,6 +171,8 @@ class InferenceWidget(Widget):
                 data["flow_thr"],
                 data["flow_smooth"],
                 data["use_gpu"],
+                data["kill_borders"],
+                1
             )
         except ValueError as e:
             show_warning(str(e))
@@ -193,8 +204,9 @@ class InferenceWidget(Widget):
             show_info("Main channel layer not found, cannot display results")
             return
         name = prefix + layer.name
-        axes = self.options.value("Axes")
+        axes = [a.upper() for a in layer.axis_labels]
         result = ImageUtils.removeExtraAxes(self.operation.output_buffer, axes)
+    
         if name in self.viewer.layers:
             self.viewer.layers[name].data = result.values
         else:

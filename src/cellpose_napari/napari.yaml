@@ -14,9 +14,6 @@ contributions:
     - id: cellpose-napari.register_model
       title: Register CellPose Model
       python_name: cellpose_napari:CellPoseRegisterModelWidget
-    - id: cellpose-napari.split_axis
-      title: Split Axis
-      python_name: cellpose_napari:SplitAxisWidget
     - id: cellpose-napari.data.rgb_3D
       title: Generate RGB 3D sample
       python_name: cellpose_napari._sample_data:rgb_3D.tif
@@ -32,8 +29,6 @@ contributions:
       display_name: CellPose Batch Processing
     - command: cellpose-napari.register_model
       display_name: Register CellPose Model
-    - command: cellpose-napari.split_axis
-      display_name: Split Axis
   sample_data:
     - display_name: Cells (3D+2Ch)
       key: rgb_3D
@@ -47,4 +42,3 @@ contributions:
       - command: cellpose-napari.training_widget
       - command: cellpose-napari.batch_widget
       - command: cellpose-napari.register_model
-      - command: cellpose-napari.split_axis

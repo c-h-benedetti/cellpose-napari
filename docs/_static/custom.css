@@ -1,0 +1,7 @@
+.wy-nav-content {
+    max-width: none;
+}
+
+p + ul.simple {
+    transform: translateY(-24px);
+}

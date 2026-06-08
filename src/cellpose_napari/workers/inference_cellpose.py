@@ -2,12 +2,30 @@ from pathlib import Path
 import json
 import numpy as np
 from abc import ABC, abstractmethod
+import torch
 from tqdm import tqdm
 import xarray as xr
+from skimage.segmentation import clear_border
+import gc
+    
 
 class CellPoseBaseInference(ABC):
     
-    def __init__(self, ch_main, ch_secondary, model, diameter, anisotropy, min_size, cell_prob, flow_thr, flow_smooth, use_gpu):
+    def __init__(
+            self, 
+            ch_main, 
+            ch_secondary, 
+            model, 
+            diameter, 
+            anisotropy, 
+            min_size, 
+            cell_prob, 
+            flow_thr, 
+            flow_smooth, 
+            use_gpu,
+            kill_border,
+            margin_width
+        ):
         self.main_channel = ch_main
         self.secondary_channel = ch_secondary
         self.model_name = self.find_model(model)
@@ -18,7 +36,8 @@ class CellPoseBaseInference(ABC):
         self.flow_threshold = flow_thr
         self.flow_smooth = flow_smooth
         self.use_gpu = use_gpu
-        self.model = None
+        self.kill_border = kill_border
+        self.margin_width = margin_width
         self.output_buffer = None
 
     def get_n_time_points(self):
@@ -70,25 +89,39 @@ class CellPoseBaseInference(ABC):
             if not p.is_file():
                 raise ValueError(f"Model path {model_path} does not exist")
             return model_path
+        
+    def killBorder(self, img):
+        if not self.kill_border:
+            return img
+        else:
+            return clear_border(img, buffer_size=self.margin_width)
 
     def run(self):
         self.sanity_check()
-        self.instanciate_model()
+        model = self.instanciate_model()
         do_3d = self.main_channel.sizes['Z'] > 1
         n_times = self.get_n_time_points()
-        self.output_buffer = xr.zeros_like(self.main_channel, dtype=np.uint16)
+        self.output_buffer = xr.DataArray(
+            np.zeros(self.main_channel.shape, dtype=np.uint16),
+            dims=self.main_channel.dims,
+            coords=self.main_channel.coords
+        )
         
         for t in tqdm(range(n_times), desc="Processing time points"):
             image = self.main_channel.isel(T=t)
             if self.secondary_channel is not None:
                 secondary = self.secondary_channel.isel(T=t)
                 image = xr.concat([image, secondary], dim="C")
-            res = self.run_model(image, do_3d)
-            self.output_buffer.isel(T=t)[:] = res
+            res = self.run_model(image, do_3d, model)
+            self.output_buffer.isel(T=t).values[:] = res.values
             yield t+1
+
+        del model
+        torch.cuda.empty_cache()
+        gc.collect()
     
     @abstractmethod
-    def run_model(self, im_data, do_3d):
+    def run_model(self, im_data, do_3d, model):
         raise NotImplementedError("Subclasses should implement this method to run the model.")
 
     @abstractmethod

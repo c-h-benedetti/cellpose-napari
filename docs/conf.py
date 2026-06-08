@@ -13,6 +13,7 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
+from cellpose_napari._version import __version__
 
 
 # -- Project information -----------------------------------------------------
@@ -22,7 +23,7 @@ copyright = '2021, Carsen Stringer & Marius Pachitariu'
 author = 'Carsen Stringer & Marius Pachitariu'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1'
+release = __version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -36,17 +37,12 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
-    'sphinx.ext.napoleon']
-#extensions = ['sphinx.ext.autodoc',
-#            'sphinx.ext.mathjax',
-#            'sphinx.ext.viewcode',
-#            'sphinx.ext.autosummary',
-#            'sphinx.ext.doctest',
-#            'sphinx.ext.inheritance_diagram',
-#            'autoapi.extension',
-#            'sphinx.ext.napoleon']
+    "sphinx.ext.napoleon"
+]
 
-autoapi_dirs = ['../cellpose_napari']
+autoapi_dirs = [
+    "../cellpose_napari"
+]
 
 source_suffix='.rst'
 
@@ -75,7 +71,6 @@ html_theme_options = {
     'canonical_url': '',
     'analytics_id': 'UA-XXXXXXX-1',  #  Provided by Google in your dashboard
     'logo_only': False,
-    'display_version': True,
     'prev_next_buttons_location': 'top',
     'style_external_links': False,
     'style_nav_header_background': 'black',
@@ -91,3 +86,5 @@ html_theme_options = {
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+html_css_files = ["custom.css"]

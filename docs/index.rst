@@ -6,17 +6,21 @@
 Cellpose-Napari
 ===============
 
-:code:`cellpose-napari` is a package containing a Napari plugin enabling the usage of Cellpose in Napari.
+:code:`cellpose-napari` is a package containing a Napari plugin enabling the usage of Cellpose from Napari.
+
 This plugin works for both Cellpose 3 and Cellpose 4 (Cellpose SAM) and is compatible with Napari 0.5 and later.
+
 The term "usage" includes:
-- Inference on images in the Napari viewer (2D, 2D+t, 3D, 3D+t).
-- Batch inference over a folder full of images.
-- Retrain Cellpose using custom data.
+
+* Inference on images in the Napari viewer (2D, 2D+t, 2D composites, 2D+t composites, 3D, 3D+t, 3D composites and 3D+t composites).
+* Batch inference over a folder full of images.
+* Train a Cellpose model using custom data.
+* Possibly use your custom models.
 
 .. image:: _static/gui.PNG
-    :width: 1200px
+    :width: 800px
     :align: center
-    :alt: plugin
+    :alt: plugin inference GUI
 
 Please see Cellpose `documentation`_ for more information on the algorithm and the settings.
 
@@ -43,5 +47,5 @@ If you use this plugin please cite
    :caption: Basics:
    
    installation
-   running
+   inference
    settings

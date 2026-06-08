@@ -34,5 +34,4 @@ elif isCPSAM():
 else:
     raise Exception(f"Unsupported CellPose version!")
 
-from .widgets.split_axis_widget import SplitAxisWidget
 from ._sample_data import napari_provide_sample_data

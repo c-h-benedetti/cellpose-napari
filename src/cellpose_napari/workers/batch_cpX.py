@@ -9,7 +9,7 @@ from cellpose_napari.im_utils import ImageUtils
 class CPBatchWorker(object):
     def __init__(self, input_folder, output_folder, main_channel_prefix, secondary_channel_prefix, axes, pixel_size_yx, pixel_size_z, model, median_diameter, min_size, use_gpu, cell_prob_threshold, flow_threshold, flow_smoothing, segmentation_prefix):
         self.input_folder = input_folder
-        self.output_folder = output_folder
+        self.output_folder = Path(output_folder)
         self.main_channel_prefix = main_channel_prefix
         self.secondary_channel_prefix = secondary_channel_prefix
         self.pixel_size_yx = pixel_size_yx

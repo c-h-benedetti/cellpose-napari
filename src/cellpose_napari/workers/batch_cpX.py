@@ -7,7 +7,7 @@ import xarray as xr
 from cellpose_napari.im_utils import ImageUtils
 
 class CPBatchWorker(object):
-    def __init__(self, input_folder, output_folder, main_channel_prefix, secondary_channel_prefix, axes, pixel_size_yx, pixel_size_z, model, median_diameter, min_size, use_gpu, cell_prob_threshold, flow_threshold, flow_smoothing, segmentation_prefix):
+    def __init__(self, input_folder, output_folder, main_channel_prefix, secondary_channel_prefix, axes, pixel_size_yx, pixel_size_z, model, median_diameter, min_size, use_gpu, cell_prob_threshold, flow_threshold, flow_smoothing, segmentation_prefix, kill_borders):
         self.input_folder = input_folder
         self.output_folder = Path(output_folder)
         self.main_channel_prefix = main_channel_prefix
@@ -23,6 +23,7 @@ class CPBatchWorker(object):
         self.flow_threshold = flow_threshold
         self.flow_smoothing = flow_smoothing
         self.segmentation_prefix = segmentation_prefix
+        self.kill_borders = kill_borders
         self.pairs = self.gather_files()
         self.last_item = None
         if not self.output_folder.exists():
@@ -66,6 +67,8 @@ class CPBatchWorker(object):
             flow_thr=self.flow_threshold,
             flow_smooth=self.flow_smoothing,
             use_gpu=self.use_gpu,
+            kill_border=self.kill_borders,
+            margin_width=1
         )
         return worker
     

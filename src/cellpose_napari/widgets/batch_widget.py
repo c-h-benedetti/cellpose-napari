@@ -36,6 +36,7 @@ class BatchWidget(Widget):
         options.addFloat("Cell probability threshold", value=0.0)
         options.addFloat("Flow threshold", value=0.4)
         options.addFloat("Flow smoothing", value=1.0)
+        options.addBool("Kill borders?", value=False)
         options.addStr("Segmentation prefix", value="labels-")
     
     def processAnisotropy(self):
@@ -66,12 +67,14 @@ class BatchWidget(Widget):
                 data['cell_prob_threshold'], 
                 data['flow_threshold'], 
                 data['flow_smoothing'], 
-                data['segmentation_prefix']
+                data['segmentation_prefix'],
+                data['kill_borders']
             )
         except ValueError as e:
             show_warning(str(e))
             return
-        print("batch worker created successfully, starting worker...")
+
+        self.setEnabledGUI(False)
         worker = create_worker(
             self.operation.run,
             _progress={
@@ -83,6 +86,7 @@ class BatchWidget(Widget):
         worker.start()
 
     def onTaskFinished(self, *args, **kwargs):
+        self.setEnabledGUI(True)
         show_info("CellPose batch finished!")
 
     def captureData(self):
@@ -97,6 +101,7 @@ class BatchWidget(Widget):
         median_diameter = self.options.value("Median diameter")
         min_size = self.options.value("Minimum object size")
         use_gpu = self.options.value("Use GPU?")
+        kill_borders = self.options.value("Kill borders?")
         cell_prob_threshold = self.options.value("Cell probability threshold")
         flow_threshold = self.options.value("Flow threshold")
         flow_smoothing = self.options.value("Flow smoothing")
@@ -117,5 +122,6 @@ class BatchWidget(Widget):
             'cell_prob_threshold': cell_prob_threshold,
             'flow_threshold': flow_threshold,
             'flow_smoothing': flow_smoothing,
-            'segmentation_prefix': segmentation_prefix
+            'segmentation_prefix': segmentation_prefix,
+            'kill_borders': kill_borders
         }

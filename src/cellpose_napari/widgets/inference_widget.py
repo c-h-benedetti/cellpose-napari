@@ -177,8 +177,8 @@ class InferenceWidget(Widget):
         except ValueError as e:
             show_warning(str(e))
             return
-        
-        print("worker created successfully, starting worker...")
+
+        self.setEnabledGUI(False)
         worker = create_worker(
             self.operation.run,
             _progress={
@@ -192,6 +192,7 @@ class InferenceWidget(Widget):
 
     def displayResult(self, *args, **kwargs):
         print("Worker finished, displaying results...")
+        self.setEnabledGUI(True)
         if self.operation is None:
             show_info("No output to display")
             return

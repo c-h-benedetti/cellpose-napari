@@ -14,6 +14,9 @@ class Widget(QWidget):
         self.operation  = None
         self.widget     = self.createLayout()
 
+    def setEnabledGUI(self, enabled: bool):
+        self.widget.setEnabled(enabled)
+
     def createLayout(self):
         widget = OptionsWidget(
             viewer=self.viewer, 
